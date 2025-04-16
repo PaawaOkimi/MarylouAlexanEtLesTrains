@@ -5,28 +5,51 @@ from common.move import Move
 # Student scipers, will be automatically used to evaluate your code
 SCIPERS = ["390899", "Ton sciper"]
 
+#TRUCS A FAIRE:
+#COINS _ALEXAN
+#POINTS SUR LES BORDURES _ ALEXAN
+#NE PAS SE PRENDRE LES WAGONS _MARYLOU POUR L'INSTANT
+#Lorsque x_train == x_position, les train va continuer dans la meme direction _MARYLOU
+
 #INFO:
 #J'ai créé une première fonction pour éviter de devoir remettre les coordonnées a chaque nouvelle fonction
 #Je suis en train de faire qu'il aille chercher les passager ou les déposer. Mon idée'
 #c'est qu'on mette ensuite le choix de mouvement dans le get_move() du style, si c'est le plus proche on fait passenger sinon delivery...'
 
+#2ème commit:
+#Le train récupère et dépose les passager
+#Il ne reconnait pas sa propre queue et donc meurt sur lui même ce qu'il faut changer
+
 
 class Agent(BaseAgent):
+    nickname = "Bob"
+    def get_the_food(self):#function to find the closest point of food
+        positionsoffood=[]
+        for x in range(len(self.passengers)):
+            positionsoffood.append(self.passengers[x]["position"])
+        closestdis=1000000
+        for x in positionsoffood:
+            pos=x
+            distance=abs(pos[0]-self.all_trains[self.nickname]['position'][0])+abs(pos[1]-self.all_trains[self.nickname]['position'][1])
+            if distance < closestdis:
+                closestdis=distance
+        return pos
+
     def positions(self):
         """
         Coordinates which a reused several times to determine the train's next move
         """
 
         #Train Coordinates
-        self.x_train_position = self.all_trains['Bob']['position'][0]
-        self.y_train_position = self.all_trains['Bob']['position'][1]
+        self.x_train_position = self.all_trains[self.nickname]['position'][0]
+        self.y_train_position = self.all_trains[self.nickname]['position'][1]
         
         #passenger Coordinates
-        self.x_passenger_position = self.passengers[0]['position'][0]
-        self.y_passenger_position = self.passengers[0]['position'][1]
-
+        passenger_pos = self.get_the_food()
+        self.x_passenger_position = passenger_pos[0] 
+        self.y_passenger_position = passenger_pos[1]
         #previous train movement
-        self.current_move = Move(tuple(self.all_trains['Bob']['direction']))
+        self.current_move = Move(tuple(self.all_trains[self.nickname]['direction']))
 
         #delivery zone coordinates
         self.x_delivery_position = self.delivery_zone['position'][0]
@@ -60,9 +83,9 @@ class Agent(BaseAgent):
         self.positions()
 
         print("MOOOOOOVE", move)
-        moves = [Move.UP, Move.DOWN, Move.LEFT, Move.RIGHT]
-        previous_move = tuple([ -i for i in list(self.current_move.value)])
-        moves.remove(Move(previous_move))
+        #moves = [Move.UP, Move.DOWN, Move.LEFT, Move.RIGHT]
+        #previous_move = tuple([ -i for i in list(self.current_move.value)])
+        #moves.remove(Move(previous_move))
         if move == Move.UP:
             #checks if wall above
             print("MOOOVVVVVVVVVVE", move)
@@ -192,7 +215,7 @@ class Agent(BaseAgent):
         Determines Train's next position
         """
         #A rajouter: des conditions if,elif,else qui determinent si le train va en direction des passager/évite d'autres trains/dépose des passager,...
-        if len(self.all_trains['Bob']['wagons']) > 4: # and self.passed_on_delivery_zone == 0:
+        if len(self.all_trains[self.nickname]['wagons']) > 4: # and self.passed_on_delivery_zone == 0:
             move = self.deliver_passengers()
             walls = self.walls_around(move)
             if walls:
@@ -204,7 +227,7 @@ class Agent(BaseAgent):
             if walls:
                 print("MOVEEEEEE", move)
                 move = self.move_if_walls(move)
-        print("MOVEEEEEE", move, "WAGONS", len(self.all_trains['Bob']['wagons']))
+        print("MOVEEEEEE", move, "WAGONS", len(self.all_trains[self.nickname]['wagons']))
         return move
 
 
