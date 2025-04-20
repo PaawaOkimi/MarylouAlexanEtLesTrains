@@ -134,7 +134,7 @@ class Agent(BaseAgent):
         if move==0:
             move=self.get_the_food()
         
-        if len(self.all_trains[self.nickname]['wagons'])>10:
+        if len(self.all_trains[self.nickname]['wagons'])>4:
             move=self.depose_passengers()
         #moves = [Move.UP, Move.DOWN, Move.LEFT, Move.RIGHT]
         #return random.choice(moves)

@@ -95,7 +95,7 @@ class Agent(BaseAgent):
         """
         Determines direction to take to get to closest passenger
         """
-        
+
         #########################################################################33
         self.positions()
     
@@ -122,17 +122,21 @@ class Agent(BaseAgent):
 
     def get_move(self):
         
-        
-        if self.GO == 0:
-            passenger_pos = self.closest_passenger()
-            move = self.path_to_point(passenger_pos)
-        else:
+        if len(self.all_trains[self.nickname]['wagons'])>=1:
             delivery_zone_pos = self.delivery_zone['position']
             move = self.path_to_point(delivery_zone_pos)
-        if len(self.all_trains[self.nickname]['wagons'])>=4:
-            self.GO = 1
-        if len(self.all_trains[self.nickname]['wagons']) == 0:
-            self.GO = 0
+        
+        #if self.GO == 0:
+        else:
+            passenger_pos = self.closest_passenger()
+            move = self.path_to_point(passenger_pos)
+        #else:
+        #    delivery_zone_pos = self.delivery_zone['position']
+        #    move = self.path_to_point(delivery_zone_pos)
+        #if len(self.all_trains[self.nickname]['wagons'])>=4:
+        #    self.GO = 1
+        #if len(self.all_trains[self.nickname]['wagons']) == 0:
+        #    self.GO = 0
             
         return Move(move)
 
