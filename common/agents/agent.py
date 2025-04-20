@@ -7,157 +7,136 @@ SCIPERS = ["390899", "Ton sciper"]
 
 #TRUCS A FAIRE:
 #COINS _ALEXAN
-#POINTS SUR LES BORDURES _ ALEXAN
+#POINTS SUR LES BORDURES _ Alexan (Je crois que j'ai resolu le problème: je ne prenais pas en compte la variation de taille de la grille en fonction du nombre de passager)
+#ALEXAN_ resoudre le problème de taille de la delivery zone (dans le dossier delivery zone j'arrive pas a comprendre la taille du truc :( ))
 #NE PAS SE PRENDRE LES WAGONS _MARYLOU POUR L'INSTANT
 #Lorsque x_train == x_position, les train va continuer dans la meme direction _MARYLOU
 
 #INFO:
-#J'ai créé une première fonction pour éviter de devoir remettre les coordonnées a chaque nouvelle fonction
-#Je suis en train de faire qu'il aille chercher les passager ou les déposer. Mon idée'
-#c'est qu'on mette ensuite le choix de mouvement dans le get_move() du style, si c'est le plus proche on fait passenger sinon delivery...'
-
-#2ème commit:
-#Le train récupère et dépose les passager
-#Il ne reconnait pas sa propre queue et donc meurt sur lui même ce qu'il faut changer
+#J'ai un peut reformuler la fonction pour les passagers les plus proches (les noms etaient droles mais a la fin c plus clair pour le correcteur comme ca je pense :))
+"""Petite remarque pour les conventions d'écriture: 
+        -pour les noms de variables faut utiliser snake_case
+        -je crois que les gens aiment bien quand on mets des espaces si on se sert de +,=,... (du style pos + dist) 
+Voila voila :), je suis pas 100% sure que c'est exactement ca mais sinon je conseille de le faire direct en ecrivant le code plutot que de devoir tout relire a la fin
+(Après si ca te ralenti dans l'écriture c'est pas un problème ca ne me dérange pas de modifier les trucs quand tu les push (Dis-moi ce que tu préfères ou si y a un problème))"""
 
 
 class Agent(BaseAgent):
+
     nickname = "Bob"
-    def get_the_food(self):#function to find the closest point of food
-        positionsoffood=[]
-        for x in range(len(self.passengers)):
-            positionsoffood.append(self.passengers[x]["position"])
-        closestdis=1000000
-        for x in positionsoffood:
-            pos=x
-            distance=abs(pos[0]-self.all_trains[self.nickname]['position'][0])+abs(pos[1]-self.all_trains[self.nickname]['position'][1])
-            if distance < closestdis:
-                closestdis=distance
-        return pos
 
     def positions(self):
         """
         Coordinates which a reused several times to determine the train's next move
         """
 
-        #Train Coordinates
+        #Current Train Coordinates
         self.x_train_position = self.all_trains[self.nickname]['position'][0]
         self.y_train_position = self.all_trains[self.nickname]['position'][1]
         
         #passenger Coordinates
-        passenger_pos = self.get_the_food()
+        passenger_pos = self.closest_passenger()
         self.x_passenger_position = passenger_pos[0] 
         self.y_passenger_position = passenger_pos[1]
+
         #previous train movement
-        self.current_move = Move(tuple(self.all_trains[self.nickname]['direction']))
+        self.move_vector = tuple(self.all_trains[self.nickname]['direction'])
+        self.current_move = Move(self.move_vector)
+
+        #wanted position
+        self.wanted_x_pos = (self.move_vector[0] * self.cell_size) + self.x_train_position
+        self.wanted_y_pos = (self.move_vector[1] * self.cell_size) + self.y_train_position
 
         #delivery zone coordinates
         self.x_delivery_position = self.delivery_zone['position'][0]
         self.y_delivery_position = self.delivery_zone['position'][1]
-        self.delivery_zone_height = self.delivery_zone['height']
-        self.delivery_zone_width = self.delivery_zone['width']
-        self.passed_on_delivery_zone = 0
+        delivery_zone_height = self.delivery_zone['height']
+        delivery_zone_width = self.delivery_zone['width']
+        self.x_min_delivery = self.x_delivery_position
+        self.x_max_delivery = self.x_delivery_position + delivery_zone_width
+        self.y_min_delivery = self.y_delivery_position
+        self.y_max_delivery = self.y_delivery_position + delivery_zone_height
 
-    def walls_around(self, move):
-        
-        self.positions()
-        
-        wanted_move = list(move.value)
-        wanted_x_pos = self.x_train_position + wanted_move[0]*self.cell_size
-        wanted_y_pos = self.y_train_position + wanted_move[1]*self.cell_size
-        if wanted_x_pos > 400 :
-            #checks if there is a wall to the right
-            return 1
-        if wanted_x_pos < 0 :
-            #checks if there is a wall to the left
-            return 1
-        if wanted_y_pos > 400 :
-            #checks if there is a wall above
-            return 1
-        if wanted_y_pos < 0 :
-            #checks if there is a wall below
-            return 1
+    def closest_passenger(self):
+        """
+        Determines passenger closest to train
+        """
+        passenger_positions=[]
+        for i in range(len(self.passengers)):
+            passenger_positions.append(self.passengers[i]['position'])
+        closest_dist = float('inf')
+        for pos in passenger_positions:
+            distance = abs(pos[0] - self.all_trains[self.nickname]['position'][0]) + abs(pos[1] - self.all_trains[self.nickname]['position'][1])
+            if distance < closest_dist:
+                closest_dist = distance
+                closest_passenger = pos
+        return closest_passenger
         
     def move_if_walls(self, move):
 
         self.positions()
 
-        print("MOOOOOOVE", move)
-        #moves = [Move.UP, Move.DOWN, Move.LEFT, Move.RIGHT]
-        #previous_move = tuple([ -i for i in list(self.current_move.value)])
-        #moves.remove(Move(previous_move))
         if move == Move.UP:
             #checks if wall above
-            print("MOOOVVVVVVVVVVE", move)
-            if self.y_train_position - self.cell_size < 0:
-                print("MOOOOOOVE", move) 
+            if self.y_train_position - self.cell_size < 0: 
                 #checks if in top left corner
                 if self.x_train_position - self.cell_size < 0:
-                    move = Move.turn_right(Move.UP)
-                    print("MOVE_UP", move)
-                    return move
-                else:
-                    move = Move.turn_left(Move.UP)
-                    print("MOVE_UP", move)
-                    return move
+                    return Move.turn_right(move)    
+                return Move.turn_left(move)
                 
         elif move == Move.DOWN:
             #checks if wall below
-            if self.y_train_position + self.cell_size > 400:
+            if self.y_train_position + self.cell_size >= self.game_height:
                 #checks if bottom left corner
                 if self.x_train_position - self.cell_size < 0:
-                    move = Move.turn_left(Move.DOWN)
-                    print("MOVE_DOWN", move)
-                    return move
-                else:
-                    move = Move.turn_right(Move.DOWN)
-                    print("MOVE_DOWN", move)
-                    return move
+                    return Move.turn_left(move)
+                return Move.turn_right(move)
+                
         elif move == Move.LEFT:
             #checks if wall to the left
             if self.x_train_position - self.cell_size < 0:
                 #checks if bottom left corner
-                if self.y_train_position + self.cell_size > 400:
-                    move = Move.turn_right(Move.LEFT)
-                    print("MOVE_LEFT", move)
-                    return move
-                else:
-                    move = Move.turn_left(Move.LEFT)
-                    print("MOVE_LEFT", move)
-                    return move
+                if self.y_train_position + self.cell_size >= self.game_height:
+                    print("Bottom left corner")
+                    return Move.turn_right(move)
+                return Move.turn_left(move)
+                
         elif move == Move.RIGHT:
-            #checks if wall to the left
-            if self.x_train_position + self.cell_size > 400:
+            #checks if wall to the right
+            if self.x_train_position + self.cell_size >= self.game_width:
                 #checks if bottom right corner
-                if self.y_train_position + self.cell_size > 400:
-                    move = Move.turn_left(Move.RIGHT)
-                    print("MOVE_RIGHT", move)
-                    return move
-                else:
-                    move = Move.turn_right(Move.RIGHT)
-                    print("MOVE_RIGHT", move)
-                    return move
+                if self.y_train_position + self.cell_size >= self.game_height:
+                    print("Bottom right corner")
+                    return Move.turn_left(move) 
+                return Move.turn_right(move)
         
-
-
+        return move
 
     def path_to_passenger(self):
         """
         Determines possible path to collect passenger (not yet optimized)
         """
 
-        self.positions()
+        self.positions()    
+
+        distance = abs(self.x_passenger_position - self.x_train_position) + abs(self.y_passenger_position - self.y_train_position)
+        next_distance = abs(self.x_passenger_position - self.wanted_x_pos) + abs(self.y_passenger_position - self.wanted_y_pos)
 
         #how to move towards passengers depending on current move
         if self.current_move in (Move.UP, Move.DOWN):
             if self.x_train_position == self.x_passenger_position:
+                if distance < next_distance:
+                    return Move.turn_left(self.current_move)
                 return self.current_move
             elif self.x_train_position > self.x_passenger_position:
                 return Move.LEFT
             elif self.x_train_position < self.x_passenger_position:
                 return Move.RIGHT
+            
         if self.current_move in (Move.RIGHT, Move.LEFT):
             if self.y_train_position == self.y_passenger_position:
+                if distance < next_distance:
+                    return Move.turn_left(self.current_move)
                 return self.current_move
             elif self.y_train_position > self.y_passenger_position:
                 return Move.UP
@@ -165,44 +144,72 @@ class Agent(BaseAgent):
                 return Move.DOWN
     
     def deliver_passengers(self): ##Je suis en train d'ecrire cette fonction
-        """
-        - self.delivery_zone_width / 2 
-        + self.delivery_zone_width / 2
-        + self.delivery_zone_width / 2
-        - self.delivery_zone_width / 2
-
-        - self.delivery_zone_height / 2
-+ self.delivery_zone_height / 2
-+ self.delivery_zone_height / 2
-- self.delivery_zone_width / 2
-        """
         
         self.positions()
         #print(type(self.x_delivery_position), type(self.delivery_zone_width), type(self.x_train_position))
+
+        distance = max(0, self.x_min_delivery - self.x_train_position, self.x_train_position - self.x_max_delivery) + max(0, self.y_min_delivery - self.y_train_position, self.y_train_position - self.y_max_delivery) 
+        next_distance = max(0, self.x_min_delivery - self.wanted_x_pos, self.wanted_x_pos - self.x_max_delivery) + max(0, self.y_min_delivery - self.wanted_y_pos, self.wanted_y_pos - self.y_max_delivery)
         if self.current_move in (Move.UP, Move.DOWN):
-            if (self.x_delivery_position  ) <= self.x_train_position <= (self.x_delivery_position ):
-                self.passed_on_delivery_zone = 0
+            if (self.x_min_delivery) <= self.x_train_position <= (self.x_max_delivery):
+                if distance < next_distance:
+                    if self.y_train_position > self.y_delivery_position:
+                        return Move.turn_right(self.current_move)
+                    return Move.turn_left(self.current_move)
                 return self.current_move
-            elif self.x_train_position > (self.x_delivery_position ) :
+            elif self.x_train_position > self.x_max_delivery :
                 return Move.LEFT
-            elif self.x_train_position < (self.x_delivery_position ) :
+            elif self.x_train_position < self.x_min_delivery :
                 return Move.RIGHT
+            
         if self.current_move in (Move.RIGHT, Move.LEFT):
-            if (self.y_delivery_position  ) <= self.y_train_position <= (self.y_delivery_position ):
-                self.passed_on_delivery_zone = 1
+            if self.y_min_delivery <= self.y_train_position <= self.y_max_delivery:
+                if distance < next_distance:
+                    if self.x_train_position < self.x_delivery_position:
+                        return Move.turn_right(self.current_move)
+                    return Move.turn_left(self.current_move)
                 return self.current_move
-            elif self.y_train_position > (self.y_delivery_position ):
+            elif self.y_train_position > self.y_min_delivery:
                 return Move.UP
-            elif self.y_train_position < (self.y_delivery_position ):
+            elif self.y_train_position < self.y_max_delivery:
                 return Move.DOWN
+        
+        return self.current_move
 
+    def wanted_position(self, move):
+        wanted_move = move.value
+        wanted_x_pos = (wanted_move[0] * self.cell_size) + self.x_train_position
+        wanted_y_pos = (wanted_move[1] * self.cell_size) + self.y_train_position
+        wanted_pos =(wanted_x_pos, wanted_y_pos)
 
-    def avoid_wagons(self):
+        return wanted_pos
+
+    def avoid_wagons_and_trains(self, move):
         #QUESTION: est-ce qu'on fait une fonction pour éviter ses propres wagons et une pour éviter les autres trains ou on combine les deux?
         """
         Moves possible to avoid running into other trains/into the trains own wagons
         """
-        pass
+        #next position depending on wanted move
+        
+        #defines positions of every train wagon on the grid
+        wagon_positions = []
+        for train in self.all_trains:
+            wagon_positions.append(self.all_trains[train]["position"])
+            for wagon_pos in self.all_trains[train]["wagons"]:
+                wagon_positions.append(wagon_pos) 
+
+        wanted_position = self.wanted_position(move)
+        wanted_pos = []
+        wanted_pos.append(wanted_position[0])
+        wanted_pos.append(wanted_position[1])
+        print(wanted_pos in wagon_positions, wanted_pos) #, wagon_positions)
+        #How to avoid other trains
+        if wanted_pos in wagon_positions:
+            while wanted_position in wagon_positions:
+                print("TURN", move)
+                move = Move.turn_left(move)
+                wanted_pos = self.wanted_position(move)
+        return move
 
     def get_move(self):
         
@@ -214,22 +221,40 @@ class Agent(BaseAgent):
         """
         Determines Train's next position
         """
-        #A rajouter: des conditions if,elif,else qui determinent si le train va en direction des passager/évite d'autres trains/dépose des passager,...
-        if len(self.all_trains[self.nickname]['wagons']) > 4: # and self.passed_on_delivery_zone == 0:
-            move = self.deliver_passengers()
-            walls = self.walls_around(move)
-            if walls:
-                print("MOVEEEEEE", move)
-                move = self.move_if_walls(move)
-        else:
+        if self.GO == 0:
             move = self.path_to_passenger()
-            walls = self.walls_around(move)
-            if walls:
-                print("MOVEEEEEE", move)
-                move = self.move_if_walls(move)
-        print("MOVEEEEEE", move, "WAGONS", len(self.all_trains[self.nickname]['wagons']))
+            move = self.avoid_wagons_and_trains(move)
+            move = self.move_if_walls(move)
+        else:
+            move = self.deliver_passengers()
+            #MUST BE TRANSFORMED INTO ONE FUNCTION WITH AVOID_ALL_OBSTACLES
+            move = self.avoid_wagons_and_trains(move)
+            move = self.move_if_walls(move)
+        if len(self.all_trains[self.nickname]['wagons'])>=4:
+            self.GO = 1
+        if len(self.all_trains[self.nickname]['wagons']) == 0:
+            self.GO = 0
+        #A rajouter: des conditions if,elif,else qui determinent si le train va en direction des passager/évite d'autres trains/dépose des passager,...
+        #if len(self.all_trains[self.nickname]['wagons']) > 0: # and self.passed_on_delivery_zone == 0:
+        #    move = self.deliver_passengers()
+        #    #MUST BE TRANSFORMED INTO ONE FUNCTION WITH AVOID_ALL_OBSTACLES
+        #    move = self.avoid_wagons_and_trains(move)
+        #    move = self.move_if_walls(move)
+        #else:
+        #    move = self.path_to_passenger()
+        #    move = self.avoid_wagons_and_trains(move)
+        #    move = self.move_if_walls(move)
         return move
 
+
+#def avoid_all(move):
+#    wagon_positions = self.wagon_pos()
+#    available_positions = self.grid_coordinates()
+#    for i in range(4):
+#        wanted_pos = self.wanted_pos(move)
+#        if wanted_pos not in available_positions or wanted_pos in wagon_positions:
+#            move = Move.turn_left(move)
+#        if move = current_move * -1 :
 
 
             
