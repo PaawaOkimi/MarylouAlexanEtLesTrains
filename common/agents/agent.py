@@ -11,6 +11,12 @@ SCIPERS = ["390899", "Ton sciper"]
 #ALEXAN_ resoudre le problème de taille de la delivery zone (dans le dossier delivery zone j'arrive pas a comprendre la taille du truc :( ))
 #NE PAS SE PRENDRE LES WAGONS _MARYLOU POUR L'INSTANT
 #Lorsque x_train == x_position, les train va continuer dans la meme direction _MARYLOU
+#ALEXAN_ resoudre le problème de taille de la delivery zone (dans le dossier delivery zone j'arrive pas a comprendre la taille du truc :( ))
+#NE PAS SE PRENDRE LES WAGONS _MARYLOU POUR L'INSTANT
+#Lorsque x_train == x_position, les train va continuer dans la meme direction _MARYLOU
+# Les coins et certaines des gestions de collision wagons ne marchent pas
+#récupérer en chemin vers le largage si proche?
+
 
 #INFO:
 #J'ai un peut reformuler la fonction pour les passagers les plus proches (les noms etaient droles mais a la fin c plus clair pour le correcteur comme ca je pense :))
@@ -104,9 +110,9 @@ class Agent(BaseAgent):
         elif move == Move.RIGHT:
             #checks if wall to the right
             if self.x_train_position + self.cell_size >= self.game_width:
-                #checks if bottom right corner
+                #checks if top right corner
                 if self.y_train_position + self.cell_size >= self.game_height:
-                    print("Bottom right corner")
+                    print("Top right corner")
                     return Move.turn_left(move) 
                 return Move.turn_right(move)
         
@@ -202,13 +208,22 @@ class Agent(BaseAgent):
         wanted_pos = []
         wanted_pos.append(wanted_position[0])
         wanted_pos.append(wanted_position[1])
-        print(wanted_pos in wagon_positions, wanted_pos) #, wagon_positions)
         #How to avoid other trains
         if wanted_pos in wagon_positions:
+            print(wanted_position)
+            wanted_position=list(wanted_position)
+            #alexan-update20april : did change the function because tuple cant be equal to list
             while wanted_position in wagon_positions:
                 print("TURN", move)
                 move = Move.turn_left(move)
-                wanted_pos = self.wanted_position(move)
+                wanted_position = self.wanted_position(move)
+            return move
+
+
+        
+
+
+
         return move
 
     def get_move(self):
@@ -221,7 +236,13 @@ class Agent(BaseAgent):
         """
         Determines Train's next position
         """
-        if self.GO == 0:
+        GO=0
+        if len(self.all_trains[self.nickname]['wagons'])>=15:
+            GO = 1
+        if len(self.all_trains[self.nickname]['wagons']) == 0:
+            GO = 0
+
+        if GO == 0:
             move = self.path_to_passenger()
             move = self.avoid_wagons_and_trains(move)
             move = self.move_if_walls(move)
@@ -230,11 +251,9 @@ class Agent(BaseAgent):
             #MUST BE TRANSFORMED INTO ONE FUNCTION WITH AVOID_ALL_OBSTACLES
             move = self.avoid_wagons_and_trains(move)
             move = self.move_if_walls(move)
-        if len(self.all_trains[self.nickname]['wagons'])>=4:
-            self.GO = 1
-        if len(self.all_trains[self.nickname]['wagons']) == 0:
-            self.GO = 0
+    
         #A rajouter: des conditions if,elif,else qui determinent si le train va en direction des passager/évite d'autres trains/dépose des passager,...
+        
         #if len(self.all_trains[self.nickname]['wagons']) > 0: # and self.passed_on_delivery_zone == 0:
         #    move = self.deliver_passengers()
         #    #MUST BE TRANSFORMED INTO ONE FUNCTION WITH AVOID_ALL_OBSTACLES
