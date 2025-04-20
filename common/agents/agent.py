@@ -12,7 +12,8 @@ SCIPERS = ["390899", "Ton sciper"]
 # Les coins et certaines des gestions de collision wagons ne marchent pas
 #récupérer en chemin vers le largage si proche?
 
-
+#ATTENTION - LE CHEMIN VERS LE PASSAGER NE PREND PAS EN COMPTE PLUSIEURS PASSAGERS ! Il faudra modifier pour plusieurs passagers
+#sur la map et déterminer lequel il faut focus
 #INFO:
 #J'ai un peut reformuler la fonction pour les passagers les plus proches (les noms etaient droles mais a la fin c plus clair pour le correcteur comme ca je pense :))
 """Petite remarque pour les conventions d'écriture: 
@@ -21,10 +22,9 @@ SCIPERS = ["390899", "Ton sciper"]
 Voila voila :), je suis pas 100% sure que c'est exactement ca mais sinon je conseille de le faire direct en ecrivant le code plutot que de devoir tout relire a la fin
 (Après si ca te ralenti dans l'écriture c'est pas un problème ca ne me dérange pas de modifier les trucs quand tu les push (Dis-moi ce que tu préfères ou si y a un problème))"""
 
-
+"""PS : La fonction position que tu as défini m'a GRANDEMENT facilité la tâche pour coder. Merci beaucoup !"""
 class Agent(BaseAgent):
 
-    nickname = "Bob"
     def positions(self):
         """
         Coordinates which a reused several times to determine the train's next move
@@ -206,21 +206,57 @@ class Agent(BaseAgent):
         wanted_pos.append(wanted_position[1])
         #How to avoid other trains
         if wanted_pos in wagon_positions:
-            print(wanted_position)
             wanted_position=list(wanted_position)
             #alexan-update20april : did change the function because tuple cant be equal to list
-            while wanted_position in wagon_positions:
-                print("TURN", move)
-                move = Move.turn_left(move)
-                wanted_position = self.wanted_position(move)
+            print("TURN", move)
+            """ below code takes care of dodging our own wagons. A check to prevent what I call a "snake block" has been implemented"""
+            actual_direction    =   move.value
+            list_moves  = [[1,0],[-1,0],[0,1],[0,-1]]
+            opposite_actual_direction   =  [-x for x in list(move.value)]
+            list_moves.remove(opposite_actual_direction)
+            list_moves.remove(list(actual_direction))
+            manage_snakeblock_x = (list_moves[0][0] * 2*self.cell_size) + self.x_train_position
+            manage_snakeblock_y =  (list_moves[0][1]* 2*self.cell_size) + self.y_train_position
+            check_snakeblock = (manage_snakeblock_x,manage_snakeblock_y)
+            if check_snakeblock in wagon_positions:
+                future_move=tuple(list_moves[1])
+
+            else:
+                future_move=tuple(list_moves[0])
+                #part of code not optimized at all to convert back to Move.DIRECTION from numerical values.
+                #didnt find an already existing function, is there a way to write this in a better way?
+                #problem : can't use variable "left", "right" to insert when calling a name of function
+            if future_move == (1,0):
+                move = Move.RIGHT
+            if future_move == (-1,0):
+                move = Move.LEFT
+            if future_move == (0,1):
+                move = Move.DOWN
+            if future_move == (0,-1):
+                move = Move.UP
             return move
 
-
-        
-
-
-
         return move
+    """Should work in theory    """
+    def on_the_way(self):
+        distance_to_passenger = abs(self.x_passenger_position - self.x_train_position) + abs(self.y_passenger_position - self.y_train_position)
+        if distance_to_passenger < 100:#100 is purely arbitrary, to test and determine which is best (from what I've seen the range of the value should be 50-150)
+            return self.path_to_passenger()
+        else:
+            return self.deliver_passengers()
+
+        #goal of this function : grab "close passengers" that are on the way to the delivery zone in order to optimize
+        # take really close ones otherwise you lose time and speed
+
+    def close_to_delivery(self):
+        """ after many different tests, I realized you could gain time by dropping some passengers off if very close
+        to the delivery zone on the way. This function takes care of those special cases, making some gains in efficiency :-)"""
+        distance_to_delivery = abs(self.x_delivery_position - self.x_train_position) + abs(self.y_delivery_position - self.y_train_position)
+        if distance_to_delivery < 80 and len(self.all_trains[self.nickname]['wagons'])>=2: #80 is arbitrary, 2 just makes sense in practice
+            return self.deliver_passengers()
+        else:
+            return self.path_to_passenger()
+
 
     def get_move(self):
         
@@ -233,17 +269,18 @@ class Agent(BaseAgent):
         Determines Train's next position
         """
         GO=0
-        if len(self.all_trains[self.nickname]['wagons'])>=15:
+        if len(self.all_trains[self.nickname]['wagons'])>=4:
             GO = 1
-        if len(self.all_trains[self.nickname]['wagons']) == 0:
-            GO = 0
+
 
         if GO == 0:
-            move = self.path_to_passenger()
+            move = self.path_to_passenger() # could in fact be removed because of the below function, but clearer this way in terms of process
+            move = self.close_to_delivery()
             move = self.avoid_wagons_and_trains(move)
             move = self.move_if_walls(move)
         else:
-            move = self.deliver_passengers()
+            move = self.deliver_passengers() # could in fact be removed because of the below function, but clearer this way in terms of process
+            move = self.on_the_way()#just checks if passager on the way to the delivery zone
             #MUST BE TRANSFORMED INTO ONE FUNCTION WITH AVOID_ALL_OBSTACLES
             move = self.avoid_wagons_and_trains(move)
             move = self.move_if_walls(move)
