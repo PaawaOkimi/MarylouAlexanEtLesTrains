@@ -237,7 +237,7 @@ class Agent(BaseAgent):
         Determines Train's next position
         """
         GO=0
-        if len(self.all_trains[self.nickname]['wagons'])>=15:
+        if len(self.all_trains[self.nickname]['wagons'])>=5:
             GO = 1
         if len(self.all_trains[self.nickname]['wagons']) == 0:
             GO = 0

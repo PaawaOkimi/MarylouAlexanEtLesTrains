@@ -63,7 +63,7 @@ class Agent(BaseAgent):
             for y in range(0, self.game_height, self.cell_size):
                 grid_coordinates.append((x,y))
         #print("GRIIIIIIIIID", grid_coordinates)
-        print("TRAIN POS", self.all_trains["Bob"]["position"], tuple(self.all_trains["Bob"]["position"]) in grid_coordinates)
+        print("TRAIN POS", self.all_trains[self.nickname]["position"], tuple(self.all_trains[self.nickname]["position"]) in grid_coordinates)
         for train in self.all_trains:
             train_pos = tuple(self.all_trains[train]["position"])
             if train_pos in grid_coordinates:
