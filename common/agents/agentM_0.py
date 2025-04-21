@@ -9,8 +9,7 @@ SCIPERS = ["390899", "Ton sciper"]
 # Nouvelle version qui marche mieux parce qu'elle évite les autres trains mais je pense qu'elle sera moins efficace que l'autre une fois que l'autre evitera les trains
 #En revanche le code de mise en place est plus simple
 class Agent(BaseAgent):
-    nickname = "Bob"
-    GO = 0
+
     def positions(self):
         """
         Cordinates which are reused several times throughout the movement choice
@@ -98,7 +97,7 @@ class Agent(BaseAgent):
         #########################################################################33
         self.positions()
     
-        moves = [Move.UP.value, Move.DOWN.value, Move.LEFT.value, Move.RIGHT.value]
+        moves = [Move.LEFT.value, Move.DOWN.value, Move.UP.value,  Move.RIGHT.value]
         previous_m = tuple(-i for i in self.move_vector)
         moves.remove(previous_m)
         shortest_distance = float('inf')
@@ -115,24 +114,67 @@ class Agent(BaseAgent):
                 possible_move = move
                 if distance < shortest_distance:
                     shortest_distance = distance
-                    best_move = move  
+                    best_move = move 
+             
         return best_move if best_move is not None else possible_move
         
+    def on_the_way(self):
 
+        closest_passenger = self.closest_passenger()
+        distance_to_passenger = abs(closest_passenger[0] - self.x_train_position) + abs(closest_passenger[1] - self.y_train_position)
+        if distance_to_passenger < 120:#120 is purely arbitrary, to test and determine which is best (from what I've seen the range of the value should be 50-150)
+            return 1
+        return 0
+
+
+    def close_to_delivery(self):
+        train_pos = self.all_trains[self.nickname]["position"]
+        delivery_pos = self.delivery_zone['position']
+        """ after many different tests, I realized you could gain time by dropping some passengers off if very close
+        to the delivery zone on the way. This function takes care of those special cases, making some gains in efficiency :-)"""
+        distance_to_delivery = self.distance_to_point(train_pos[0], train_pos[1], delivery_pos[0], delivery_pos[1])
+        if distance_to_delivery < 80 and len(self.all_trains[self.nickname]['wagons'])>=2: #80 is arbitrary, 2 just makes sense in practice
+            return 1
+        return 0
+      
     def get_move(self):
         
         
-        if self.GO == 0:
+        DELIVER = 0
+        delivery_zone_pos = self.delivery_zone['position']
+
+        if len(self.all_trains[self.nickname]['wagons'])>=4:
+            DELIVER = 1
+
+        if DELIVER == 0:
+            close_to_delivery = self.close_to_delivery()
+            #if close_to_delivery == 1:
+            #    move = self.path_to_point(delivery_zone_pos)
+        #    else:
             passenger_pos = self.closest_passenger()
             move = self.path_to_point(passenger_pos)
+#
         else:
-            delivery_zone_pos = self.delivery_zone['position']
-            move = self.path_to_point(delivery_zone_pos)
-        if len(self.all_trains[self.nickname]['wagons'])>=4:
-            self.GO = 1
-        if len(self.all_trains[self.nickname]['wagons']) == 0:
-            self.GO = 0
+            passenger_on_the_way = self.on_the_way()
+            if passenger_on_the_way == 1:
+                passenger_pos = self.closest_passenger()
+                move = self.path_to_point(passenger_pos)
+            else:
+                move = self.path_to_point(delivery_zone_pos)
             
         return Move(move)
+    #
+
+#            {
+#                "nickname": "Luky Luke",
+#                "agent_file_name": "agentM_0.py"
+#            },
+#            {
+#                "nickname": "Billy the kid",
+#                "agent_file_name": "agentA_0.py"
+#            },
+#            {
+#                "nickname": "Buffalo Bill",
+#                "agent_file_name": "agent.py"
 
     

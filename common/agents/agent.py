@@ -230,29 +230,29 @@ class Agent(BaseAgent):
                 #part of code not optimized at all to convert back to Move.DIRECTION from numerical values.
                 #didnt find an already existing function, is there a way to write this in a better way?
                #previous code wasn't efficient in multiplayer, was changed
-            if actual_direction == (1,0):
-                if future_move == (0,1):
+            if actual_direction == Move.RIGHT.value:
+                if future_move == Move.DOWN.value:
                     move = Move.turn_right(move)
-                elif future_move == (0,-1):
+                elif future_move == Move.UP.value:
                     move = Move.turn_left(move)
 
-            if actual_direction == (-1,0):
-                if future_move == (0,1):
+            if actual_direction == Move.LEFT.value:
+                if future_move == Move.DOWN.value:
                     move = Move.turn_left(move)
-                elif future_move == (0,-1):
+                elif future_move == Move.UP.value:
                     move = Move.turn_right(move)
 
 
-            if actual_direction == (0,1):
-                if future_move == (-1,0):
+            if actual_direction == Move.DOWN.value:
+                if future_move == Move.LEFT.value:
                     move = Move.turn_right(move)
-                elif future_move == (1,0):
+                elif future_move == Move.RIGHT.value:
                     move = Move.turn_left(move)
 
-            if actual_direction == (0,-1):
-                if future_move == (-1,0):
+            if actual_direction == Move.UP.value:
+                if future_move == Move.LEFT.value:
                     move = Move.turn_left(move)
-                elif future_move == (1,0):
+                elif future_move == Move.RIGHT.value:
                     move = Move.turn_right(move)
                     
             #didnt find a way to write it more cohesively, tests in progress to see efficiency of the method
