@@ -194,6 +194,7 @@ class Agent(BaseAgent):
         
         #defines positions of every train wagon on the grid
         wagon_positions = []
+        print(self.all_trains)
         for train in self.all_trains:
             wagon_positions.append(self.all_trains[train]["position"])
             for wagon_pos in self.all_trains[train]["wagons"]:
@@ -205,10 +206,9 @@ class Agent(BaseAgent):
         wanted_pos.append(wanted_position[1])
         #How to avoid other trains
         if wanted_pos in wagon_positions:
-            print("initially", move)
-
             wanted_position=list(wanted_position)
             #alexan-update20april : did change the function because tuple cant be equal to list
+            print("TURN", move)
             """ below code takes care of dodging our own wagons. A check to prevent what I call a "snake block" has been implemented"""
             actual_direction    =   move.value
             list_moves  = [[1,0],[-1,0],[0,1],[0,-1]]
@@ -217,7 +217,7 @@ class Agent(BaseAgent):
             list_moves.remove(list(actual_direction))
             manage_snakeblock_x = (list_moves[0][0] * 2*self.cell_size) + self.x_train_position
             manage_snakeblock_y =  (list_moves[0][1]* 2*self.cell_size) + self.y_train_position
-            check_snakeblock = [manage_snakeblock_x,manage_snakeblock_y]
+            check_snakeblock = (manage_snakeblock_x,manage_snakeblock_y)
             if check_snakeblock in wagon_positions:
                 future_move=tuple(list_moves[1])
 
@@ -225,35 +225,16 @@ class Agent(BaseAgent):
                 future_move=tuple(list_moves[0])
                 #part of code not optimized at all to convert back to Move.DIRECTION from numerical values.
                 #didnt find an already existing function, is there a way to write this in a better way?
-               #previous code wasn't efficient in multiplayer, was changed
-            if actual_direction == (1,0):
-                if future_move == (0,1):
-                    move = Move.turn_right(move)
-                elif future_move == (0,-1):
-                    move = Move.turn_left(move)
-
-            if actual_direction == (-1,0):
-                if future_move == (0,1):
-                    move = Move.turn_left(move)
-                elif future_move == (0,-1):
-                    move = Move.turn_right(move)
-
-
-            if actual_direction == (0,1):
-                if future_move == (-1,0):
-                    move = Move.turn_right(move)
-                elif future_move == (1,0):
-                    move = Move.turn_left(move)
-
-            if actual_direction == (0,-1):
-                if future_move == (-1,0):
-                    move = Move.turn_left(move)
-                elif future_move == (1,0):
-                    move = Move.turn_right(move)
-                    
-            #didnt find a way to write it more cohesively, tests in progress to see efficiency of the method
-            print("changed to", move)
-
+                #problem : can't use variable "left", "right" to insert when calling a name of function
+            print(future_move)
+            if future_move == (1,0):
+                move = Move.RIGHT
+            if future_move == (-1,0):
+                move = Move.LEFT
+            if future_move == (0,1):
+                move = Move.DOWN
+            if future_move == (0,-1):
+                move = Move.UP
             return move
 
         return move
