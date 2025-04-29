@@ -2,6 +2,13 @@ import random
 from common.base_agent import BaseAgent
 from common.move import Move
 
+"""
+Size of delivery_zone?
+Character not spawning?
+Difference of level between agent and bot
+
+Control edge cases, eg between train and wall, ...
+"""
 # Student scipers, will be automatically used to evaluate your code
 SCIPERS = ["390899", "Ton sciper"]
 
@@ -45,15 +52,21 @@ class Agent(BaseAgent):
         self.x_delivery_position = self.delivery_zone['position'][0]
         self.y_delivery_position = self.delivery_zone['position'][1]
     
-    def distance_to_point(self, train_x, train_y, point_x, point_y):
+    def distance_to_point(self, train_x: int, train_y: int, point_x: int, point_y: int):
         """
         Calculates shortest distance between the train and a given point
 
-        IN: train coordinates (int) and point coordinates (int)
-        OUT: shortest distance (int)
+        IN: train coordinates (x,y) and point coordinates (x,y)
+        OUT: shortest distance (tuple of int)
         """
 
         return abs(train_x - point_x) + abs(train_y - point_y)
+    
+    def new_position(self, move, num_of_moves):
+        new_x = self.x_train_position + (move[0] * self.cell_size)*num_of_moves
+        new_y = self.y_train_position + (move[1] * self.cell_size)*num_of_moves
+
+        return (new_x, new_y)
 
     def available_grid_coordinates(self):
         """
@@ -111,16 +124,24 @@ class Agent(BaseAgent):
 
         return closest_passenger
     
+    def check_if_corner(self, moves):
+
+        self.positions()
+        self.available_grid_coordinates()
+
+        return moves 
+
     
-    def path_to_point(self, point):
+    def path_to_point(self, point: tuple):
         """
         Determines direction to take to get to closest passenger
 
-        IN: coordinates of the point the train is trying to reach (int)
+        IN: coordinates of the point the train is trying to reach (int, int)
         OUT: best move the train can take (eg: Move.UP, Move.LEFT, ...)
         """
 
         self.positions()
+        #other = 0
 
         #reset possible moves train can choose from
         moves = [Move.LEFT.value, Move.DOWN.value, Move.UP.value,  Move.RIGHT.value]
@@ -130,17 +151,18 @@ class Agent(BaseAgent):
         shortest_distance = float('inf')
         best_move = None
 
+        moves = self.check_if_corner(moves)
+
         for move in moves:
             #calculate distance between possible new position and point train is trying to reach
-            new_x = self.x_train_position + move[0] * self.cell_size
-            new_y = self.y_train_position + move[1] * self.cell_size
+            new_pos = self.new_position(move, 1) 
+            new_x = new_pos[0]
+            new_y = new_pos[1]
             distance = self.distance_to_point(new_x, new_y, point[0], point[1])
-            #calculate new coordinates if this move is chosen
-            new_pos = []
-            new_pos.append(new_x)
-            new_pos.append(new_y)
+
             #determine available coordinates
             available_positions = self.available_grid_coordinates()
+
             #check if wanted move does not move onto unavailable position
             if tuple(new_pos) in available_positions:
                 possible_move = move
@@ -150,6 +172,11 @@ class Agent(BaseAgent):
                     best_move = move 
                 if distance == shortest_distance:
                     other_possibility = move
+                    #print(other)
+                    #if other == 0:
+                    #    third_possibility = move
+                    #    other =1
+                    #    print(other)
         
         #determine distance if turning around
         if point == self.delivery_zone['position']:
@@ -158,17 +185,15 @@ class Agent(BaseAgent):
             turn_around = self.distance_to_point(turn_x, turn_y, point[0], point[1])
             #check if turning around would be the best choice
             if distance > turn_around:
-                print("OTHER")
                 return other_possibility
 
-        print("MOVE")
-        return best_move if best_move is not None else possible_move
+        return best_move if best_move is not None else third_possibility if third_possibility is not None else possible_move
         
     def on_the_way(self):
 
         closest_passenger = self.closest_passenger()
         distance_to_passenger = abs(closest_passenger[0] - self.x_train_position) + abs(closest_passenger[1] - self.y_train_position)
-        if distance_to_passenger < 100:#120 is purely arbitrary, to test and determine which is best (from what I've seen the range of the value should be 50-150)
+        if distance_to_passenger < 120:#120 is purely arbitrary, to test and determine which is best (from what I've seen the range of the value should be 50-150)
             return 1
         return 0
 
@@ -179,8 +204,12 @@ class Agent(BaseAgent):
         """ after many different tests, I realized you could gain time by dropping some passengers off if very close
         to the delivery zone on the way. This function takes care of those special cases, making some gains in efficiency :-)"""
         distance_to_delivery = self.distance_to_point(train_pos[0], train_pos[1], delivery_pos[0], delivery_pos[1])
-        if distance_to_delivery < 80 and len(self.all_trains[self.nickname]['wagons'])>=2: #80 is arbitrary, 2 just makes sense in practice
+        #closest_passenger = self.closest_passenger()
+        #distance_to_passenger = self.distance_to_point(train_pos[0], train_pos[1], closest_passenger[0], closest_passenger[1])
+        if distance_to_delivery < 90 and len(self.all_trains[self.nickname]['wagons'])>=2: #80 is arbitrary, 2 just makes sense in practice
             return 1
+        #elif distance_to_delivery > 2*distance_to_passenger:
+        #    return 1
         return 0
       
     def get_move(self):
@@ -189,7 +218,7 @@ class Agent(BaseAgent):
         DELIVER = 0
         delivery_zone_pos = self.delivery_zone['position']
 
-        if len(self.all_trains[self.nickname]['wagons'])>=6:
+        if len(self.all_trains[self.nickname]['wagons'])>=30:
             DELIVER = 1
 
         if DELIVER == 0:
